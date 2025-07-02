@@ -14,8 +14,7 @@ import pdfkit
 # Initialize Faker
 fake = Faker()
 
-# Bank configuration
-# Update BANK_CONFIG to use flat filenames
+# Bank configuration with flat filenames
 BANK_CONFIG = {
     "chase": {
         "logo": "chase_bank_logo.png",
@@ -54,26 +53,6 @@ BANK_CONFIG = {
         }
     }
 }
-
-# Update environment initialization in identify_template_fields
-env = Environment(loader=FileSystemLoader(templates_dir))
-
-# Update environment initialization in generate_populated_html_and_pdf
-env = Environment(loader=FileSystemLoader(template_dir))
-try:
-    template = env.get_template("base_template.html")  # Load base template from root
-except TemplateNotFound:
-    raise FileNotFoundError(f"Base template 'base_template.html' not found in {template_dir}")
-
-# Update template_data in generate_populated_html_and_pdf
-template_data.update({
-    "bank_front_page_template": BANK_CONFIG[component_map["bank_front_page"]]["components"]["bank_front_page"],
-    "account_summary_template": BANK_CONFIG[component_map["account_summary"]]["components"]["account_summary"],
-    "bank_balance_template": BANK_CONFIG[component_map["bank_balance"]]["components"]["bank_balance"],
-    "disclosures_template": BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"],
-    "component_map": component_map
-})
-
 
 # Pydantic models
 class FieldDefinition(BaseModel):
@@ -139,11 +118,10 @@ def generate_transaction_description(amount: float, category: str, account_type:
     description_list = next((cat[1] for cat in (categories["loss"] + categories["gain"]) if cat[0] == category), [f"{category} Transaction"])
     description = random.choice(description_list)[:35]
     description = ' '.join(word.capitalize() for word in description.split())
-    # Assign transaction type based on amount and category
     if amount > 0:
         transaction_type = "deposit"
     else:
-        transaction_type = random.choice(["electronic", "check", "other"])  # More specific types for withdrawals
+        transaction_type = random.choice(["electronic", "check", "other"])
     transaction = Transaction(description=description, category=category, amount=amount, account_type=account_type, type=transaction_type)
     return transaction.model_dump()
 
@@ -158,10 +136,9 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     start_date = datetime.now() - timedelta(days=30)
     dates = [start_date + timedelta(days=random.randint(0, 30)) for _ in range(num_transactions)]
     
-    # Ensure a mix of deposits and withdrawals
     transactions = []
-    min_deposits = max(1, num_transactions // 3)  # Ensure at least 1/3 are deposits
-    min_withdrawals = max(1, num_transactions // 3)  # Ensure at least 1/3 are withdrawals
+    min_deposits = max(1, num_transactions // 3)
+    min_withdrawals = max(1, num_transactions // 3)
     deposit_count = 0
     withdrawal_count = 0
     
@@ -200,27 +177,22 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     df["Balance"] = initial_balance + df["Amount"].cumsum()
     return df
 
-# Identify mutable and immutable fields (updated for modular sections)
+# Identify mutable and immutable fields
 def identify_template_fields(component_map: Dict[str, str], templates_dir: str = "f_templates") -> StatementFields:
     env = Environment(loader=FileSystemLoader(templates_dir))
     supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
     for component in component_map.keys():
         if component not in supported_components:
-            raise ValueError(f"Unsupported component in component_map: {component}. Supported components: {supported_components}")
-    
-    # Check all bank templates for the given components
+            raise ValueError(f"Unsupported component: {component}")
     placeholders = set()
     for component in supported_components:
         bank = component_map[component]
-        if bank not in BANK_CONFIG:
-            raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
-        template_path = os.path.join(templates_dir, BANK_CONFIG[bank]["components"][component])
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"Template file not found: {template_path}")
-        
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template_content = f.read()
-        placeholders.update(re.findall(r'\{\{([^{}]+)\}\}', template_content))
+        template_name = BANK_CONFIG[bank]["components"][component]
+        try:
+            template = env.get_template(template_name)
+            placeholders.update(re.findall(r'\{\{([^{}]+)\}\}', template.render()))
+        except TemplateNotFound:
+            raise FileNotFoundError(f"Template {template_name} not found in {templates_dir}")
     placeholders = [p.strip() for p in placeholders]
     
     default_fields = [
@@ -265,19 +237,11 @@ def identify_template_fields(component_map: Dict[str, str], templates_dir: str =
     
     return statement_fields
 
-# Generate populated HTML and PDF (updated for modular sections)
-def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str = "f_templates", output_dir: str = "output_statements", account_type: str = Field(..., description="Type of account (personal or business)")) -> list:
-    for bank in component_map.values():
-        if bank not in BANK_CONFIG:
-            raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
-    
-    # Ensure output directory exists
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Use FileSystemLoader with the root directory and let BANK_CONFIG handle subpaths
+# Generate populated HTML and PDF
+def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str = "f_templates", output_dir: str = "output_statements", account_type: str) -> list:
     env = Environment(loader=FileSystemLoader(template_dir))
     try:
-        template = env.get_template(os.path.basename("base_template.html"))  # Load base template from root
+        template = env.get_template("base_template.html")
     except TemplateNotFound:
         raise FileNotFoundError(f"Base template 'base_template.html' not found in {template_dir}")
     
@@ -292,17 +256,15 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     
     min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
     max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:54 PM CDT"
+    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")
     
     address = fake.address().replace('\n', '<br>')[:100]
     account_holder = account_holder[:50]
     account_number = fake.bban()[:15]
     
-    # Generate important info based on the selected bank_front_page
     info_bank = component_map["bank_front_page"]
     important_info = generate_important_info(info_bank, account_type)
     
-    # Prepare transactions based on selected bank_balance
     transactions = []
     deposits = []
     withdrawals = []
@@ -361,7 +323,6 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
             })
             running_balance -= service_fee
     
-    # Prepare daily balances for Chase/Wells Fargo if selected
     daily_balances = [
         {"date": row["Date"], "amount": f"${row['Balance']:,.2f}"}
         for _, row in df.drop_duplicates(subset="Date").iterrows()
@@ -382,7 +343,6 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
             balance_map[iso_date] = f"${running_balance:,.2f}"
             current_date += day_delta
     
-    # Prepare summary
     summary = {
         "beginning_balance": f"${initial_balance:,.2f}",
         "deposits_total": f"${deposits_total:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{deposits_total:,.2f}",
@@ -409,7 +369,6 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "overdraft_status": "Opted-In" if random.choice([True, False]) else "Opted-Out"
     }
     
-    # Prepare template data
     template_data = {
         "account_holder": account_holder,
         "account_holder_address": address,
@@ -444,17 +403,13 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "date_of_birth": fake.date_of_birth(minimum_age=18, maximum_age=80).strftime("%m/%d/%Y") if component_map["bank_front_page"] == "citibank" else "",
         "customer_account_number": account_number if component_map["bank_front_page"] == "citibank" else "",
         "customer_iban": f"GB{fake.random_number(digits=2)}CITI{fake.random_number(digits=14)}" if component_map["bank_front_page"] == "citibank" else "",
-        "customer_bank_name": "Citibank" if component_map["bank_front_page"] == "citibank" else ""
-    }
-    
-    # Set template paths with bank-specific subfolders
-    template_data.update({
-        "bank_front_page_template": os.path.join(template_dir, BANK_CONFIG[component_map["bank_front_page"]]["components"]["bank_front_page"]),
-        "account_summary_template": os.path.join(template_dir, BANK_CONFIG[component_map["account_summary"]]["components"]["account_summary"]),
-        "bank_balance_template": os.path.join(template_dir, BANK_CONFIG[component_map["bank_balance"]]["components"]["bank_balance"]),
-        "disclosures_template": os.path.join(template_dir, BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"]),
+        "customer_bank_name": "Citibank" if component_map["bank_front_page"] == "citibank" else "",
+        "bank_front_page_template": BANK_CONFIG[component_map["bank_front_page"]]["components"]["bank_front_page"],
+        "account_summary_template": BANK_CONFIG[component_map["account_summary"]]["components"]["account_summary"],
+        "bank_balance_template": BANK_CONFIG[component_map["bank_balance"]]["components"]["bank_balance"],
+        "disclosures_template": BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"],
         "component_map": component_map
-    })
+    }
     
     template_name_base = "_".join([f"{k}_{v}" for k, v in component_map.items()])
     html_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{template_name_base}.html")
@@ -551,7 +506,6 @@ def generate_important_info(bank: str, account_type: str) -> str:
     return "<p>No specific important information available.</p>"
 
 if __name__ == "__main__":
-    # Example usage (for testing)
     df = generate_bank_statement(10, "John Doe", "personal")
     component_map = {"bank_front_page": "chase", "account_summary": "pnc", "bank_balance": "wellsfargo", "disclosures": "citibank"}
     output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, "f_templates", "output_statements", "personal")
