@@ -12,6 +12,14 @@ from faker import Faker
 from streamlit_pdf_viewer import pdf_viewer  # Add this import for streamlit-pdf-viewer
 
 fake = Faker()
+# Directory setup
+SAMPLE_LOGOS_DIR = "franken_logos"
+SYNTHETIC_STAT_DIR = "output_statements"
+TEMPLATES_DIR = "f_templates"
+
+# Create directories if they don’t exist
+for directory in [SAMPLE_LOGOS_DIR, SYNTHETIC_STAT_DIR, TEMPLATES_DIR]:
+    os.makedirs(directory, exist_ok=True)
 
 # Streamlit page configuration
 st.set_page_config(page_title="Synthetic Bank Statement Generator", page_icon="🏦", layout="wide")
@@ -86,7 +94,7 @@ with st.sidebar:
             st.session_state["trigger_generate"] = True
 
 # Main interface
-st.title("Lightweight Synthetic Bank Statement Generator")
+st.title("Frankenstein of Synthetic Bank Statements")
 st.markdown("""  
 - Create your synthetic bank statement by mixing and matching sections from different banks using the sidebar options.  
 - Select **Personal** or **Business** account type to customize transaction categories.  
