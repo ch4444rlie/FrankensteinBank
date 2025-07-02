@@ -252,9 +252,10 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
+    # Use FileSystemLoader with the root directory and let BANK_CONFIG handle subpaths
     env = Environment(loader=FileSystemLoader(template_dir))
     try:
-        template = env.get_template("base_template.html")
+        template = env.get_template(os.path.basename("base_template.html"))  # Load base template from root
     except TemplateNotFound:
         raise FileNotFoundError(f"Base template 'base_template.html' not found in {template_dir}")
     
@@ -269,7 +270,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     
     min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
     max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:45 PM CDT"
+    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:54 PM CDT"
     
     address = fake.address().replace('\n', '<br>')[:100]
     account_holder = account_holder[:50]
