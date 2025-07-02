@@ -126,7 +126,7 @@ if st.session_state["trigger_generate"]:
                 df.to_csv(csv_filename, index=False, encoding='utf-8')
                 
                 # Identify fields using the full component_map
-                statement_fields = identify_template_fields(st.session_state["component_map"])
+                statement_fields = identify_template_fields(st.session_state["component_map"], TEMPLATES_DIR)
                 results = generate_populated_html_and_pdf(
                     df=df,
                     account_holder=account_holder,
