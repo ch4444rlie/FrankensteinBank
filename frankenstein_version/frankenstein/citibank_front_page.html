@@ -1,0 +1,58 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 9px; line-height: 1.35; }
+  h2 { text-align: center; font-weight: 600; }
+  hr.bar { border: none; height: 4px; background: #003e7e; margin: 12px 0; }
+  header { width: 90%; margin: 0 auto; }
+  .branch-address { font-size: 9px; line-height: 1.4; color: rgb(0,70,133); font-weight: bold; }
+  .citi-logo { width: 120px; height: auto; float: right; }
+  .info-table { width: 90%; margin: 0 auto; border-collapse: collapse; }
+  .info-cell { width: 48%; vertical-align: top; padding-right: 2%; }
+  .info-cell b { display: block; margin-bottom: 4px; }
+  .info-cell span { display: block; }
+</style>
+<header>
+  <div style="position: relative; min-height: 120px;">
+    <div class="branch-address" style="position: absolute; left: 0; top: 0;">
+      Citigroup Centre<br>
+      33 Canada Square<br>
+      Canary Wharf<br>
+      London E14 5LB<br>
+      United Kingdom<br>
+      Contact us: citigroup.com/citi/contact.html
+    </div>
+    {% if logo_path %}
+    <img src="{{ logo_path }}" alt="Citibank" class="citi-logo" style="position: absolute; top: 0; right: 0;">
+    {% endif %}
+  </div>
+  <hr class="bar">
+</header>
+<main>
+  <table class="info-table">
+    <tr>
+      <td class="info-cell">
+        <b>Bank information</b>
+        <span><b>Account Provider Name: Citibank UK Limited</b></span>
+        <span><b>Account Name: {{ account_type }}</b></span>
+        <span><b>IBAN: {{ customer_iban }}</b></span>
+        <span><b>Country code: GB</b></span>
+        <span><b>Check Digits: {{ customer_iban|slice(2,4) }}</b></span>
+        <span><b>Bank code: CITI</b></span>
+        <span><b>British bank code (sort code): {{ customer_iban|slice(8,14) }}</b></span>
+        <span><b>Bank account number: {{ customer_account_number }}</b></span>
+      </td>
+      <td class="info-cell">
+        <b>Customer information</b>
+        <span><b>Client Name: {{ account_holder }}</b></span>
+        <span><b>Client number ID: {{ client_number }}</b></span>
+        <span><b>Date of birth: {{ date_of_birth }}</b></span>
+        <span><b>Account number: {{ customer_account_number }}</b></span>
+        <span><b>IBAN Bank: {{ customer_iban }}</b></span>
+        <span><b>Bank name: {{ customer_bank_name }}</b></span>
+      </td>
+    </tr>
+  </table>
+  <br><br><br><br>
+  <h2 style="text-align: center; font-weight: normal; font-size: 12px; text-transform: uppercase;">Important Account Information</h2>
+  {{ important_info | safe }}
+</main>

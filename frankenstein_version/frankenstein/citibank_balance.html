@@ -1,0 +1,40 @@
+<style>
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+  th, td { border: none; border-bottom: 1px solid #888; padding: 4px 6px; }
+  th { background: #d9d9d9; font-weight: 700; text-align: left; }
+  .num-right { text-align: right; }
+  .highlight-row { font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+</style>
+<h2 style="text-align: center; font-weight: normal; font-size: 12px; text-transform: uppercase;">Account Transactions</h2>
+<div style="font-weight: 600; margin-top: 4px; text-align: right;">
+  <span>{{ statement_period }}</span>
+  <span>Created on<br>{{ statement_date }}</span>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 15%;">Transaction date</th>
+      <th>Information</th>
+      <th style="width: 12%;" class="num-right">Debit</th>
+      <th style="width: 12%;" class="num-right">Credit</th>
+      <th style="width: 13%;"></th>
+      <th style="width: 12%;" class="num-right">Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for transaction in transactions %}
+    <tr>
+      <td>{{ transaction.date }}</td>
+      <td>{{ transaction.description }}</td>
+      <td class="num-right">{{ transaction.debit }}</td>
+      <td class="num-right">{{ transaction.credit }}</td>
+      <td></td>
+      <td class="num-right">{{ transaction.balance }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="margin: 14px 0; text-align: center;">
+  This printout is for information purposes only. Your regular account statement of assets takes precedence.
+</p>

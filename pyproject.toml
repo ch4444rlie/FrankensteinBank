@@ -1,0 +1,19 @@
+[project]
+name = "crazy-boy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "faker>=37.4.0",
+    "jinja2>=3.1.6",
+    "jupyter>=1.1.1",
+    "lxml>=6.0.0",
+    "notebook>=7.4.4",
+    "ollama>=0.5.1",
+    "pandas>=2.3.0",
+    "pdfkit>=1.0.0",
+    "pillow>=11.3.0",
+    "watchdog>=6.0.0",
+    "wkhtmltopdf>=0.2",
+]

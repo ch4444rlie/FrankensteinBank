@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ account_type }} Statement</title>
+    <style>
+        /* Common styles to ensure consistent layout */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 8.5in; /* Standard letter size for PDF */
+            margin: auto;
+            padding: 0.5in; /* Minimal padding for page margins */
+        }
+        /* Ensure tables and sections don't overflow */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        /* Scoped styles to avoid conflicts */
+        .chase-bank-front-page, .chase-account-summary, .chase-bank-balance, .chase-disclosures,
+        .citibank-bank-front-page, .citibank-account-summary, .citibank-bank-balance, .citibank-disclosures,
+        .pnc-bank-front-page, .pnc-account-summary, .pnc-bank-balance, .pnc-disclosures,
+        .wellsfargo-bank-front-page, .wellsfargo-account-summary, .wellsfargo-bank-balance, .wellsfargo-disclosures {
+            margin-bottom: 20px; /* Space between sections */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Bank Front Page (Header + Important Account Information) -->
+        <div class="{{ component_map['bank_front_page'] }}-bank-front-page">
+            {% include bank_front_page_template %}
+        </div>
+        <!-- Account Summary -->
+        <div class="{{ component_map['account_summary'] }}-account-summary">
+            {% include account_summary_template %}
+        </div>
+        <!-- Bank Balance (Deposits, Withdrawals, Daily Balances) -->
+        <div class="{{ component_map['bank_balance'] }}-bank-balance">
+            {% include bank_balance_template %}
+        </div>
+        <!-- Disclosures -->
+        <div class="{{ component_map['disclosures'] }}-disclosures">
+            {% include disclosures_template %}
+        </div>
+    </div>
+</body>
+</html>

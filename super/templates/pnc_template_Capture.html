@@ -1,0 +1,178 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{bank_name} Statement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #ccc;
+        }
+
+        .account-details {
+            margin: 20px;
+            border: 2px solid #ccc;
+            padding: 20px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table th, .summary-table td {
+            border: 2px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .deposits-table, .withdrawals-table, .balance-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .deposits-table th, .deposits-table td, .withdrawals-table th, .withdrawals-table td, .balance-table th, .balance-table td {
+            border: 2px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-top: 2px solid #ccc;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>{bank_name}</h1>
+        <img src="{logo_path}" alt="{bank_name} Logo" style="width: 100px;">
+        <p>Customer Service: 1-800-XXX-XXXX | <a href="https://www.pnc.com" target="_blank">www.pnc.com</a></p>
+    </div>
+
+    <div class="account-details">
+        <h2>Account Details</h2>
+        <p>{account_holder}</p>
+        <p>{account_holder_address}</p>
+        <p>Account Number: {account_number}</p>
+        <p>Statement Period: {statement_period}</p>
+        <p>Account Type: {account_type}</p>
+        <p>{important_info}</p>
+    </div>
+
+    <div class="summary-table">
+        <h2>Account Summary</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Beginning Balance</th>
+                    <th>Deposits Count</th>
+                    <th>Deposits Total</th>
+                    <th>Withdrawals Count</th>
+                    <th>Withdrawals Total</th>
+                    <th>Transactions Count</th>
+                    <th>Ending Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{summary.beginning_balance}</td>
+                    <td>{summary.deposits_count}</td>
+                    <td>{summary.deposits_total}</td>
+                    <td>{summary.withdrawals_count}</td>
+                    <td>{summary.withdrawals_total}</td>
+                    <td>{summary.transactions_count}</td>
+                    <td>{summary.ending_balance}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="deposits-table">
+        <h2>Deposits</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {for deposit in {deposits}:
+                    <tr>
+                        <td>{deposit.date}</td>
+                        <td>{deposit.description}</td>
+                        <td>{deposit.amount}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="withdrawals-table">
+        <h2>Withdrawals</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {for withdrawal in {withdrawals}:
+                    <tr>
+                        <td>{withdrawal.date}</td>
+                        <td>{withdrawal.description}</td>
+                        <td>{withdrawal.amount}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="balance-table">
+        <h2>Daily Balance</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {for balance in {balance_map}:
+                    <tr>
+                        <td>{balance.statement_start}</td>
+                        <td>{balance.statement_end}</td>
+                        <td>{balance.balance}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Footnotes: {show_fee_waiver ? 'Fee Waiver Applied.' : ''}</p>
+    </div>
+
+</body>
+</html>
+```

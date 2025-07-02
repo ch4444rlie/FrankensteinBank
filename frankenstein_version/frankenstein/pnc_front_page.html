@@ -1,0 +1,50 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; color: #000; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2.important-info { font-size: 11px; font-weight: bold; margin: 14px 0 6px; }
+  .small { font-size: 10.5px; }
+  hr.rule { border: none; border-top: 1px solid #000; margin: 14px 0; }
+  .section { padding: 0 6%; position: relative; }
+  .logo { height: 42px; position: absolute; top: 24px; right: 6%; }
+  .flex { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+  .section.flex { flex-wrap: nowrap; }
+  .info-left { flex: 1 1 auto; max-width: 60%; }
+  .info-right { flex: 0 0 280px; text-align: left; }
+  .info-right ul { margin-left: 14px; list-style: disc; }
+  .info-right li { margin-bottom: 3px; }
+</style>
+<section class="section" style="padding-top: 24px;">
+  <div>
+    <h1>{{ account_type }} Statement</h1>
+    <span class="small">PNC Bank</span>
+  </div>
+  {% if logo_path %}
+  <img src="{{ logo_path }}" alt="PNC Bank" class="logo">
+  {% endif %}
+</section>
+<hr class="rule">
+<section class="section flex" style="margin-bottom: 8px;">
+  <div class="info-left">
+    <b>{{ statement_period }}</b><br><br>
+    {{ account_holder }}<br>{{ account_holder_address }}
+  </div>
+  <div class="info-right small">
+    <p><b>Primary account number:</b> {{ account_number }}</p>
+    <p>Page 1 of 1</p>
+    <p>Number of enclosures: 0</p>
+    <ul>
+      <li>24-hour Online & Mobile Banking at <b>pnc.com</b></li>
+      <li>Customer service: <b>1-888-PNC-BANK</b></li>
+      <li>Mon-Fri 7 AM–10 PM ET • Sat-Sun 8 AM–5 PM ET</li>
+      <li>Spanish: <b>1-866-HOLA-PNC</b></li>
+      <li>Write: PO Box 609, Pittsburgh PA 15230-9738</li>
+      <li>TTY: <b>1-800-531-1648</b></li>
+    </ul>
+  </div>
+</section>
+<hr class="rule">
+<section class="section small">
+  <h2 class="important-info">Important Account Information</h2>
+  {{ important_info | safe }}
+</section>

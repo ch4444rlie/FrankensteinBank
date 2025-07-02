@@ -1,0 +1,28 @@
+<style>
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+  th, td { border: none; border-bottom: 1px solid #888; padding: 4px 6px; }
+  th { background: #d9d9d9; font-weight: 700; text-align: left; }
+  .num-right { text-align: right; }
+  .highlight-row { font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+</style>
+<table>
+  <tbody>
+    <tr class="highlight-row">
+      <td></td>
+      <td>Opening balance</td>
+      <td class="num-right"></td>
+      <td class="num-right"></td>
+      <td></td>
+      <td class="num-right">{{ opening_balance }}</td>
+    </tr>
+    <tr class="highlight-row">
+      <td></td>
+      <td>Total</td>
+      <td class="num-right">{{ total_debit }}</td>
+      <td class="num-right">{{ total_credit }}</td>
+      <td></td>
+      <td class="num-right">{{ total }}</td>
+    </tr>
+  </tbody>
+</table>

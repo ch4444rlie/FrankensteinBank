@@ -1,0 +1,37 @@
+<style>
+  .two-col { padding: 0 6%; overflow: hidden; }
+  .summary-block { float: left; width: 48%; font-size: 12px; margin-right: 2%; }
+  .summary-block table { width: 100%; border-collapse: collapse; }
+  .summary-block th { font-size: 15px; text-align: left; padding-bottom: 4px; }
+  .summary-block td { padding: 3px 0; }
+  .summary-block td.num { text-align: right; }
+  .two-col .summary-block:first-child {
+    border-right: 1px solid #000;
+    padding-right: 24px;
+  }
+  .activity-table td.label { padding-left: 1.25em; }
+  .routing-table td { font-size: 10.5px; }
+</style>
+<div class="two-col">
+  <div class="summary-block">
+    <table class="activity-table">
+      <tr><th colspan="2">Activity summary</th></tr>
+      <tr><td class="label">Beginning balance on</td><td class="num">{{ summary.beginning_balance }}</td></tr>
+      <tr><td class="label">Deposits / Credits</td><td class="num">{{ summary.deposits_total }}</td></tr>
+      <tr><td class="label">Withdrawals / Debits</td><td class="num">{{ summary.withdrawals_total }}</td></tr>
+      <tr>
+        <td class="label"><strong>Ending balance on</strong></td>
+        <td class="num"><strong>{{ summary.ending_balance }}</strong></td>
+      </tr>
+    </table>
+  </div>
+  <div class="summary-block">
+    <table class="routing-table">
+      <tr><th></th></tr>
+      <tr><td>Account number: {{ account_number }}</td></tr>
+      <tr><td>{{ account_holder }}</td></tr>
+      <tr><td>For Direct Deposit and Automatic Payments use Routing Number (RTN): 053000219</td></tr>
+      <tr><td>For Wire Transfer use Routing Number (RTN): 121000248</td></tr>
+    </table>
+  </div>
+</div>
