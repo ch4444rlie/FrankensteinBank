@@ -180,14 +180,18 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     return df
 
 # Identify mutable and immutable fields (updated for modular sections)
-def identify_template_fields(component: str, templates_dir: str = "f_templates") -> StatementFields:
+def identify_template_fields(component_map: Dict[str, str], templates_dir: str = "f_templates") -> StatementFields:
     supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
-    if component not in supported_components:
-        raise ValueError(f"Unsupported component: {component}. Supported components: {supported_components}")
+    for component in component_map.keys():
+        if component not in supported_components:
+            raise ValueError(f"Unsupported component in component_map: {component}. Supported components: {supported_components}")
     
-    # Check all bank templates for the given component
+    # Check all bank templates for the given components
     placeholders = set()
-    for bank in BANK_CONFIG:
+    for component in supported_components:
+        bank = component_map[component]
+        if bank not in BANK_CONFIG:
+            raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
         template_path = os.path.join(templates_dir, BANK_CONFIG[bank]["components"][component])
         if not os.path.exists(template_path):
             raise FileNotFoundError(f"Template file not found: {template_path}")
@@ -232,7 +236,7 @@ def identify_template_fields(component: str, templates_dir: str = "f_templates")
     ]
     statement_fields = StatementFields(fields=[f for f in default_fields if f.name in placeholders or f.name in ["bank_name", "bank_address", "customer_service", "footnotes"]])
     
-    log_path = os.path.join("output_statements", f"template_fields_{component}.json")
+    log_path = os.path.join("output_statements", f"template_fields.json")
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(statement_fields.model_dump(), f, indent=2)
@@ -265,7 +269,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     
     min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
     max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:38 PM CDT"
+    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:45 PM CDT"
     
     address = fake.address().replace('\n', '<br>')[:100]
     account_holder = account_holder[:50]

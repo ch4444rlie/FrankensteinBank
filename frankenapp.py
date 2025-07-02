@@ -56,11 +56,11 @@ with st.sidebar:
     
     cols = st.columns(2)
     with cols[0]:
-        st.session_state["component_map"]["bank_front_page"] = st.selectbox("Bank Info", banks, index=0, key="front_page")
+        st.session_state["component_map"]["bank_front_page"] = st.selectbox("Bank Front Page (Header + Important Info)", banks, index=0, key="front_page")
     with cols[1]:
         st.session_state["component_map"]["account_summary"] = st.selectbox("Account Summary", banks, index=0, key="summary")
     with cols[0]:
-        st.session_state["component_map"]["bank_balance"] = st.selectbox("Bank Balancing", banks, index=0, key="balance")
+        st.session_state["component_map"]["bank_balance"] = st.selectbox("Bank Balance (Deposits, Withdrawals, Daily Balances)", banks, index=0, key="balance")
     with cols[1]:
         st.session_state["component_map"]["disclosures"] = st.selectbox("Disclosures", banks, index=0, key="disclosures")
     
@@ -125,8 +125,8 @@ if st.session_state["trigger_generate"]:
                 csv_filename = os.path.join(SYNTHETIC_STAT_DIR, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}.csv")
                 df.to_csv(csv_filename, index=False, encoding='utf-8')
                 
-                # Identify fields (using the first component for simplicity)
-                statement_fields = identify_template_fields(next(iter(st.session_state["component_map"].values())))
+                # Identify fields using the full component_map
+                statement_fields = identify_template_fields(st.session_state["component_map"])
                 results = generate_populated_html_and_pdf(
                     df=df,
                     account_holder=account_holder,
@@ -179,6 +179,14 @@ if st.session_state["trigger_generate"]:
             
             except Exception as e:
                 st.error(f"Error generating statement: {str(e)}")
+                st.markdown("""
+                **Troubleshooting**:
+                - Ensure transactions are between 3 and 25.
+                - Verify the template and logo files exist in the 'f_templates' and 'franken_logos' directories.
+                - Check that wkhtmltopdf is installed.
+                - If the PDF preview or download fails, try Firefox/Edge or disable Chrome’s ad blockers.
+                - Refresh or contact the administrator.
+                """)
                 preview_placeholder = st.empty()
                 preview_placeholder.markdown("No statement generated. Resolve the error and try again.")
                 st.session_state["generated"] = False
