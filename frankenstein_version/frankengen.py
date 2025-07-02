@@ -14,14 +14,6 @@ import pdfkit
 # Initialize Faker
 fake = Faker()
 
-# Directory setup
-SAMPLE_LOGOS_DIR = "franken_logos"
-TEMPLATES_DIR = "frankenstein"
-
-# Create directories if they don’t exist
-for directory in [SAMPLE_LOGOS_DIR, SYNTHETIC_STAT_DIR, TEMPLATES_DIR]:
-    os.makedirs(directory, exist_ok=True)
-
 # Bank configuration updated for modular sections
 BANK_CONFIG = {
     "chase": {
@@ -188,7 +180,7 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     return df
 
 # Identify mutable and immutable fields (updated for modular sections)
-def identify_template_fields(component: str, templates_dir: str = TEMPLATES_DIR) -> StatementFields:
+def identify_template_fields(component: str, templates_dir: str = "templates") -> StatementFields:
     supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
     if component not in supported_components:
         raise ValueError(f"Unsupported component: {component}. Supported components: {supported_components}")
@@ -240,7 +232,8 @@ def identify_template_fields(component: str, templates_dir: str = TEMPLATES_DIR)
     ]
     statement_fields = StatementFields(fields=[f for f in default_fields if f.name in placeholders or f.name in ["bank_name", "bank_address", "customer_service", "footnotes"]])
     
-    log_path = os.path.join(SYNTHETIC_STAT_DIR, f"template_fields_{component}.json")
+    log_path = os.path.join("synthetic_statements", f"template_fields_{component}.json")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(statement_fields.model_dump(), f, indent=2)
     
@@ -266,7 +259,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     
     min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
     max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")
+    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 02:34 PM CDT"
     
     address = fake.address().replace('\n', '<br>')[:100]
     account_holder = account_holder[:50]
@@ -390,7 +383,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "account_number": account_number,
         "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}",
         "statement_date": statement_date,
-        "logo_path": os.path.join(SAMPLE_LOGOS_DIR, BANK_CONFIG[component_map["bank_front_page"]]["logo"]) if os.path.exists(os.path.join(SAMPLE_LOGOS_DIR, BANK_CONFIG[component_map["bank_front_page"]]["logo"])) else "",
+        "logo_path": os.path.join("sample_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"]) if os.path.exists(os.path.join("sample_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"])) else "",
         "important_info": important_info,
         "summary": summary,
         "deposits": deposits,
@@ -528,5 +521,5 @@ if __name__ == "__main__":
     # Example usage (for testing)
     df = generate_bank_statement(10, "John Doe", "personal")
     component_map = {"bank_front_page": "chase", "account_summary": "pnc", "bank_balance": "wellsfargo", "disclosures": "citibank"}
-    output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, TEMPLATES_DIR, SYNTHETIC_STAT_DIR, "personal")
+    output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, "templates", "synthetic_statements", "personal")
     print(f"Generated files: {output_files}")
