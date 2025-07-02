@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # Import your existing functions (adjust paths as needed)
-from your_module import generate_bank_statement, identify_template_fields, generate_populated_html_and_pdf, BANK_CONFIG
+from frankengen import generate_bank_statement, identify_template_fields, generate_populated_html_and_pdf, BANK_CONFIG
 
 # Set page configuration
 st.set_page_config(page_title="FrankenBank Statement Generator", layout="wide")
