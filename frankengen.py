@@ -240,7 +240,7 @@ def identify_template_fields(component: str, templates_dir: str = "f_templates")
     return statement_fields
 
 # Generate populated HTML and PDF (updated for modular sections)
-def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str = "f_templates", output_dir: str = "output_statements", account_type: str) -> list:
+def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str = "f_templates", output_dir: str = "output_statements", account_type: str = Field(..., description="Type of account (personal or business)")) -> list:
     for bank in component_map.values():
         if bank not in BANK_CONFIG:
             raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
