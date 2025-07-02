@@ -23,23 +23,43 @@ TEMPLATES_DIR = "templates"
 for directory in [SAMPLE_LOGOS_DIR, SYNTHETIC_STAT_DIR, TEMPLATES_DIR]:
     os.makedirs(directory, exist_ok=True)
 
-# Bank configuration
+# Bank configuration updated for modular sections
 BANK_CONFIG = {
     "chase": {
         "logo": "chase_bank_logo.png",
-        "templates": ["chase_classic_style.html", "chase_variation_1.html", "chase_variation_2.html"]
+        "components": {
+            "bank_front_page": "chase_front_page.html",
+            "account_summary": "chase_summary.html",
+            "bank_balance": "chase_balance.html",
+            "disclosures": "chase_disclosures.html"
+        }
     },
     "citibank": {
         "logo": "citibank_logo.png",
-        "templates": ["citibank_classic_template.html", "citibank_variation_1.html", "citibank_variation_2.html"]
+        "components": {
+            "bank_front_page": "citibank_front_page.html",
+            "account_summary": "citibank_summary.html",
+            "bank_balance": "citibank_balance.html",
+            "disclosures": "citibank_disclosures.html"
+        }
     },
     "wellsfargo": {
         "logo": "wellsfargo_logo.png",
-        "templates": ["wells_fargo_classic.html", "wells_variation_1.html", "wells_variation_2.html"]
+        "components": {
+            "bank_front_page": "wellsfargo_front_page.html",
+            "account_summary": "wellsfargo_summary.html",
+            "bank_balance": "wellsfargo_balance.html",
+            "disclosures": "wellsfargo_disclosures.html"
+        }
     },
     "pnc": {
         "logo": "pnc_logo.png",
-        "templates": ["pnc_classic.html"]
+        "components": {
+            "bank_front_page": "pnc_front_page.html",
+            "account_summary": "pnc_summary.html",
+            "bank_balance": "pnc_balance.html",
+            "disclosures": "pnc_disclosures.html"
+        }
     }
 }
 
@@ -168,19 +188,22 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     df["Balance"] = initial_balance + df["Amount"].cumsum()
     return df
 
-# Identify mutable and immutable fields
-def identify_template_fields(bank: str, templates_dir: str = TEMPLATES_DIR) -> StatementFields:
-    if bank not in BANK_CONFIG:
-        raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
+# Identify mutable and immutable fields (updated for modular sections)
+def identify_template_fields(component: str, templates_dir: str = TEMPLATES_DIR) -> StatementFields:
+    supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
+    if component not in supported_components:
+        raise ValueError(f"Unsupported component: {component}. Supported components: {supported_components}")
     
-    template_path = os.path.join(templates_dir, BANK_CONFIG[bank]["templates"][0])
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template file not found: {template_path}")
-    
-    with open(template_path, 'r', encoding='utf-8') as f:
-        template_content = f.read()
-    
-    placeholders = re.findall(r'\{\{([^{}]+)\}\}', template_content)
+    # Check all bank templates for the given component
+    placeholders = set()
+    for bank in BANK_CONFIG:
+        template_path = os.path.join(templates_dir, BANK_CONFIG[bank]["components"][component])
+        if not os.path.exists(template_path):
+            raise FileNotFoundError(f"Template file not found: {template_path}")
+        
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        placeholders.update(re.findall(r'\{\{([^{}]+)\}\}', template_content))
     placeholders = [p.strip() for p in placeholders]
     
     default_fields = [
@@ -200,27 +223,38 @@ def identify_template_fields(bank: str, templates_dir: str = TEMPLATES_DIR) -> S
         FieldDefinition(name="daily_balances", is_mutable=True, description="Daily balance details"),
         FieldDefinition(name="deposits", is_mutable=True, description="Deposit transactions"),
         FieldDefinition(name="withdrawals", is_mutable=True, description="Withdrawal transactions"),
-        FieldDefinition(name="bank_name", is_mutable=False, description=f"Name of the bank ({bank.capitalize()})"),
+        FieldDefinition(name="balance_map", is_mutable=True, description="Mapping of dates to balances"),
+        FieldDefinition(name="statement_start", is_mutable=True, description="Start date of the statement period"),
+        FieldDefinition(name="statement_end", is_mutable=True, description="End date of the statement period"),
+        FieldDefinition(name="day_delta", is_mutable=True, description="Delta between days for balance calculation"),
+        FieldDefinition(name="client_number", is_mutable=True, description="Client number (Citibank-specific)"),
+        FieldDefinition(name="date_of_birth", is_mutable=True, description="Date of birth (Citibank-specific)"),
+        FieldDefinition(name="customer_account_number", is_mutable=True, description="Customer account number (Citibank-specific)"),
+        FieldDefinition(name="customer_iban", is_mutable=True, description="Customer IBAN (Citibank-specific)"),
+        FieldDefinition(name="customer_bank_name", is_mutable=True, description="Customer bank name (Citibank-specific)"),
+        FieldDefinition(name="show_fee_waiver", is_mutable=True, description="Whether the service fee was waived"),
+        FieldDefinition(name="account_type", is_mutable=True, description="Type of account"),
+        FieldDefinition(name="bank_name", is_mutable=False, description="Name of the bank"),
         FieldDefinition(name="bank_address", is_mutable=False, description="Bank address"),
         FieldDefinition(name="customer_service", is_mutable=False, description="Customer service contact information"),
         FieldDefinition(name="footnotes", is_mutable=False, description="Footnotes and disclosures")
     ]
-    statement_fields = StatementFields(fields=[f for f in default_fields if f.name in placeholders or f.name in template_content])
+    statement_fields = StatementFields(fields=[f for f in default_fields if f.name in placeholders or f.name in ["bank_name", "bank_address", "customer_service", "footnotes"]])
     
-    log_path = os.path.join(SYNTHETIC_STAT_DIR, f"template_fields_{bank}.json")
+    log_path = os.path.join(SYNTHETIC_STAT_DIR, f"template_fields_{component}.json")
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(statement_fields.model_dump(), f, indent=2)
     
     return statement_fields
 
-# Generate populated HTML and PDF
-def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank: str, template_dir: str, output_dir: str, account_type: str, template_name: str) -> list:
-    if bank not in BANK_CONFIG:
-        raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
-    if template_name not in BANK_CONFIG[bank]["templates"]:
-        raise ValueError(f"Template {template_name} not supported for {bank}")
+# Generate populated HTML and PDF (updated for modular sections)
+def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str, output_dir: str, account_type: str) -> list:
+    for bank in component_map.values():
+        if bank not in BANK_CONFIG:
+            raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
     
     env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template("base_template.html")
     
     initial_balance = round(random.uniform(1000, 20000), 2)
     deposits_total = sum(x for x in df['Amount'] if x > 0)
@@ -239,91 +273,18 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
     account_holder = account_holder[:50]
     account_number = fake.bban()[:15]
     
-    logo_path = os.path.join(SAMPLE_LOGOS_DIR, BANK_CONFIG[bank]["logo"])
-    logo_data = ""
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as img_file:
-            logo_data = f"data:image/png;base64,{base64.b64encode(img_file.read()).decode('utf-8')}"
+    # Generate important info based on the selected bank_front_page
+    info_bank = component_map["bank_front_page"]
+    important_info = generate_important_info(info_bank, account_type)
     
-    # Important account information
-    important_info = """
-    <h3>Important Account Information</h3>
-    <p>Thank you for banking with us. Please review your statement carefully. If you have any questions or notice any discrepancies, contact our customer service at 1-800-555-1234. For your security, do not share your account details. Visit our website for tips on protecting your account.</p>
-    """
-    if account_type == "business":
-        if bank == "chase":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} {bank.capitalize()} Complete Checking accounts will increase to $20 unless you maintain a minimum daily balance of $2,000, have $2,000 in net purchases on a {bank.capitalize()} Business Debit Card, or maintain linked {bank.capitalize()} business accounts with a combined balance of $10,000.</p>
-            <p>Starting June 30, 2025, {bank.capitalize()} will offer enhanced cash flow tools for {account_type.capitalize()} Complete Checking accounts via {bank.capitalize()} Online, including automated invoice tracking and payment scheduling.</p>
-            <p>Effective July 15, 2025, {bank.capitalize()} will reduce wire transfer fees to $25 for domestic transfers for {account_type.capitalize()} Complete Checking accounts, down from $30.</p>
-            <p>For questions, visit your local {bank.capitalize()} Branch or call the {bank.capitalize()} Customer Care Center at <b>1-800-242-7338</b>, available 24/7.</p>
-            """
-        elif bank == "pnc":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $15 unless you maintain a minimum daily balance of $5,000, have $2,000 in net purchases on a PNC Business Debit Card, or maintain linked PNC business accounts with a combined balance of $10,000.</p>
-            <p>Starting June 30, 2025, PNC will offer enhanced cash flow tools for {account_type.capitalize()} Checking accounts via PNC Online Banking, including automated invoice tracking and payment scheduling.</p>
-            <p>Effective July 15, 2025, PNC Express Funds fees for {account_type.capitalize()} Checking accounts will increase from 2.00% to 2.50% of the check amount over $100; checks between $25 and $100 remain $2.00.</p>
-            <p>Effective July 15, 2025, PNC will reduce domestic wire transfer fees to $25 for {account_type.capitalize()} Checking accounts, down from $30.</p>
-            <p>For questions, visit your local PNC Branch or call the PNC Customer Care Center at <b>1-888-762-2265</b>, available 24/7.</p>
-            """
-        elif bank == "citibank":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly account fee for CitiBusiness Checking accounts will increase to £15 unless you maintain a minimum daily balance of £5,000 or have £2,000 in net purchases on a Citi Business Debit Card per month.</p>
-            <p>Starting June 30, 2025, Citibank will offer enhanced cash flow tools for CitiBusiness Checking accounts via Citi Online Banking, including automated invoice tracking and payment scheduling.</p>
-            <p>Effective July 15, 2025, Citibank will reduce domestic BACS transfer fees to £20 for CitiBusiness Checking accounts, down from £25.</p>
-            <p>For questions, visit citibank.co.uk or contact our Client Contact Centre at 0800 005 555 (or +44 20 7500 5500 from abroad), available 24/7.</p>
-            """
-        elif bank == "wellsfargo":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for Business Checking accounts will increase to $20 unless you maintain a minimum daily balance of $5,000, have $2,000 in net purchases on a Wells Fargo Business Debit Card, or maintain linked Wells Fargo business accounts with a combined balance of $10,000.</p>
-            <p>Starting June 30, 2025, Wells Fargo will offer enhanced cash flow tools for Business Checking accounts via Wells Fargo Online, including automated invoice tracking and payment scheduling.</p>
-            <p>Effective July 15, 2025, Wells Fargo will reduce wire transfer fees to $25 for domestic transfers for Business Checking accounts, down from $30.</p>
-            <p>For questions, visit your local Wells Fargo Branch or call the Wells Fargo Customer Service Center at <b>1-800-869-3557</b>, available 24/7.</p>
-            """
-    else:  # Personal
-        if bank == "chase":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} {bank.capitalize()} Total Checking accounts will increase to $15 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked {bank.capitalize()} savings account with a balance of $5,000 or more.</p>
-            <p>Starting June 30, 2025, {bank.capitalize()} will introduce real-time transaction alerts for {account_type.capitalize()} Total Checking accounts via the {bank.capitalize()} Mobile app to enhance account monitoring. Enable alerts at chase.com/alerts.</p>
-            <p>Effective July 15, 2025, {bank.capitalize()} will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Total Checking accounts.</p>
-            <p>For questions, visit your local {bank.capitalize()} Branch or call the {bank.capitalize()} Customer Care Center at <b>1-800-242-7338</b>, available 24/7.</p>
-            """
-        elif bank == "pnc":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $10 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked PNC savings account with a balance of $2,500 or more.</p>
-            <p>Starting June 30, 2025, PNC will introduce real-time transaction alerts for {account_type.capitalize()} Checking accounts via the PNC Mobile app to enhance account monitoring. Enable alerts at pnc.com/alerts.</p>
-            <p>Effective July 15, 2025, PNC will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Checking accounts.</p>
-            <p>Between May 1, 2025, and September 30, 2025, PNC will remove the option to print mini statements at PNC ATMs. Use Online Banking, Mobile Banking, or Branch Banking to access account information.</p>
-            <p>For questions, visit your local PNC Branch or call the PNC Customer Care Center at <b>1-888-762-2265</b>, available 24/7.</p>
-            """
-        elif bank == "citibank":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly account fee for Citi Access Checking accounts will increase to £10 unless you maintain a minimum daily balance of £1,500 or have qualifying direct deposits of £500 or more per month.</p>
-            <p>Starting June 30, 2025, Citibank will introduce real-time transaction alerts for Citi Access Checking accounts via the Citi Mobile UK app. Enable alerts at citibank.co.uk/alerts.</p>
-            <p>Effective July 15, 2025, Citibank will waive overdraft fees for transactions of £5 or less and cap daily overdraft fees at two per day for Citi Access Checking accounts.</p>
-            <p>For questions, visit citibank.co.uk or contact our Client Contact Centre at 0800 005 555 (or +44 20 7500 5500 from abroad), available 24/7.</p>
-            """
-        elif bank == "wellsfargo":
-            important_info = f"""
-            <h3>Important Account Information</h3>
-            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $10 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked Wells Fargo savings account with a balance of $2,500 or more.</p>
-            <p>Starting June 30, 2025, Wells Fargo will introduce real-time transaction alerts for {account_type.capitalize()} Checking accounts via the Wells Fargo Mobile app to enhance account monitoring. Enable alerts at wellsfargo.com/alerts.</p>
-            <p>Effective July 15, 2025, Wells Fargo will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Checking accounts.</p>
-            <p>For questions, visit your local Wells Fargo Branch or call the Wells Fargo Customer Service Center at <b>1-800-869-3557</b>, available 24/7.</p>
-            """
-
-    if bank == "citibank":
-        transactions = []
+    # Prepare transactions based on selected bank_balance
+    transactions = []
+    deposits = []
+    withdrawals = []
+    running_balance = initial_balance
+    if component_map["bank_balance"] == "citibank":
         total_debit = abs(sum(x for x in df['Amount'] if x < 0))
         total_credit = sum(x for x in df['Amount'] if x > 0)
-        running_balance = initial_balance
         for _, row in df.iterrows():
             amount = row['Amount']
             debit = f"£{abs(amount):,.2f}" if amount < 0 else ""
@@ -337,30 +298,8 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
                 "balance": f"£{running_balance:,.2f}",
                 "type": row["Type"]
             })
-        template_data = {
-            "account_holder": account_holder,
-            "client_number": fake.uuid4()[:8],
-            "date_of_birth": fake.date_of_birth(minimum_age=18, maximum_age=80).strftime("%m/%d/%Y"),
-            "customer_account_number": account_number,
-            "customer_iban": f"GB{fake.random_number(digits=2)}CITI{fake.random_number(digits=14)}",
-            "customer_bank_name": "Citibank",
-            "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}",
-            "statement_date": statement_date,
-            "opening_balance": f"£{initial_balance:,.2f}",
-            "transactions": transactions,
-            "total_debit": f"£{total_debit:,.2f}",
-            "total_credit": f"£{total_credit:,.2f}",
-            "total": f"£{ending_balance:,.2f}",
-            "logo_path": logo_data,
-            "important_info": important_info,
-            "account_type": "Access Checking" if account_type == "personal" else "Business Checking"
-        }
-    elif bank in ["wellsfargo", "pnc"]:
-        transactions = []
-        deposits = []
-        withdrawals = []
-        running_balance = initial_balance
-        for _, row in df.sort_values("Date").iterrows():  # Ensure sorted by date
+    else:
+        for _, row in df.sort_values("Date").iterrows():
             amount = row['Amount']
             transaction_type = row['Type']
             deposits_credits = f"${amount:,.2f}" if amount > 0 else ""
@@ -388,7 +327,6 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
                     "amount": f"${abs(amount):,.2f}",
                     "type": transaction_type
                 })
-        # Add service fee to withdrawals if applicable
         if service_fee:
             withdrawals.append({
                 "date": max_date.strftime("%m/%d"),
@@ -397,82 +335,18 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
                 "type": "other"
             })
             running_balance -= service_fee
-        daily_balances = [
-            {"date": row["Date"], "amount": f"${row['Balance']:,.2f}"}
-            for _, row in df.drop_duplicates(subset="Date").iterrows()
-        ]
-        summary = {
-            "beginning_balance": f"${initial_balance:,.2f}",
-            "deposits_total": f"${deposits_total:,.2f}",
-            "withdrawals_total": f"${withdrawals_total + (service_fee if service_fee else 0):,.2f}",
-            "ending_balance": f"${running_balance:,.2f}",
-            "deposits_count": len(deposits),
-            "withdrawals_count": len(withdrawals),
-            "transactions_count": len(df) + (1 if service_fee else 0),
-            "average_balance": f"${round((initial_balance + running_balance) / 2, 2):,.2f}",
-            "fees": f"${service_fee:,.2f}",
-            "checks_written": sum(1 for w in withdrawals if w["type"] == "check"),
-            "pos_transactions": random.randint(0, 10),
-            "pos_pin_transactions": random.randint(0, 5),
-            "total_atm_transactions": random.randint(0, 8),
-            "pnc_atm_transactions": random.randint(0, 5) if bank == "pnc" else 0,
-            "other_atm_transactions": random.randint(0, 3),
-            "apy_earned": f"{random.uniform(0.01, 0.5):.2f}%" if bank in ["wellsfargo", "pnc"] else "0.00%",
-            "days_in_period": (max_date - min_date).days + 1,
-            "average_collected_balance": f"${round(random.uniform(initial_balance, running_balance), 2):,.2f}",
-            "interest_paid_period": f"${random.uniform(0.1, 10):,.2f}" if bank in ["wellsfargo", "pnc"] else "$0.00",
-            "interest_paid_ytd": f"${random.uniform(1, 50):,.2f}" if bank in ["wellsfargo", "pnc"] else "$0.00",
-            "overdraft_protection1": f"{bank.capitalize()} Savings Account XXXX1234" if random.choice([True, False]) else "",
-            "overdraft_protection2": f"{bank.capitalize()} Credit Line XXXX5678" if random.choice([True, False]) else "",
-            "overdraft_status": "Opted-In" if random.choice([True, False]) else "Opted-Out"
-        }
-        template_data = {
-            "account_holder": account_holder,
-            "account_holder_address": address,
-            "account_number": account_number,
-            "statement_period": f"{min_date.strftime('%B %d')}, 2025 – {max_date.strftime('%B %d')}, 2025",
-            "statement_date": statement_date,
-            "logo_path": logo_data,
-            "important_info": important_info,
-            "summary": summary,
-            "transactions": transactions,
-            "deposits": deposits,
-            "withdrawals": withdrawals,
-            "daily_balances": daily_balances,
-            "account_type": "Standard Checking" if account_type == "personal" else "Business Checking"
-        }
-    else:  # Chase
-        deposits = []
-        withdrawals = []
-        for _, row in df.sort_values("Date").iterrows():
-            amount = row['Amount']
-            if amount > 0:
-                deposits.append({
-                    "date": row["Date"],
-                    "description": row["Description"],
-                    "amount": f"${amount:,.2f}",
-                    "type": row["Type"]
-                })
-            else:
-                withdrawals.append({
-                    "date": row["Date"],
-                    "description": row["Description"],
-                    "amount": f"${abs(amount):,.2f}",
-                    "type": row["Type"]
-                })
-        # Add service fee to withdrawals if applicable
-        if service_fee:
-            withdrawals.append({
-                "date": max_date.strftime("%m/%d"),
-                "description": "Monthly Service Fee",
-                "amount": f"${service_fee:,.2f}",
-                "type": "other"
-            })
+    
+    # Prepare daily balances for Chase/Wells Fargo if selected
+    daily_balances = [
+        {"date": row["Date"], "amount": f"${row['Balance']:,.2f}"}
+        for _, row in df.drop_duplicates(subset="Date").iterrows()
+    ]
+    balance_map = {}
+    if component_map["bank_balance"] in ["chase", "wellsfargo"]:
+        running_balance = initial_balance
         statement_start = min_date
         statement_end = max_date
         day_delta = timedelta(days=1)
-        balance_map = {}
-        running_balance = initial_balance
         current_date = statement_start
         while current_date <= statement_end:
             iso_date = current_date.isoformat()
@@ -482,58 +356,84 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
                 running_balance += daily_amount
             balance_map[iso_date] = f"${running_balance:,.2f}"
             current_date += day_delta
-        daily_balances = [
-            {"date": row["Date"], "amount": f"${row['Balance']:,.2f}"}
-            for _, row in df.drop_duplicates(subset="Date").iterrows()
-        ]
-        summary = {
-            "beginning_balance": f"${initial_balance:,.2f}",
-            "deposits_count": len(deposits),
-            "deposits_total": f"${deposits_total:,.2f}",
-            "withdrawals_count": len(withdrawals),
-            "withdrawals_total": f"${withdrawals_total + (service_fee if service_fee else 0):,.2f}",
-            "ending_balance": f"${running_balance:,.2f}",
-            "average_balance": f"${round((initial_balance + running_balance) / 2, 2):,.2f}",
-            "fees": f"${service_fee:,.2f}",
-            "checks_written": sum(1 for w in withdrawals if w["type"] == "check"),
-            "pos_transactions": random.randint(0, 10),
-            "pos_pin_transactions": random.randint(0, 5),
-            "total_atm_transactions": random.randint(0, 8),
-            "pnc_atm_transactions": 0,
-            "other_atm_transactions": random.randint(0, 3),
-            "apy_earned": "0.00%",
-            "days_in_period": (max_date - min_date).days + 1,
-            "average_collected_balance": f"${round(random.uniform(initial_balance, running_balance), 2):,.2f}",
-            "interest_paid_period": "$0.00",
-            "interest_paid_ytd": "$0.00",
-            "overdraft_protection1": "Chase Savings Account XXXX1234" if random.choice([True, False]) else "",
-            "overdraft_protection2": "Chase Credit Line XXXX5678" if random.choice([True, False]) else "",
-            "overdraft_status": "Opted-In" if random.choice([True, False]) else "Opted-Out"
-        }
-        template_data = {
-            "account_holder": account_holder,
-            "account_holder_address": address,
-            "account_number": account_number,
-            "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}",
-            "statement_date": statement_date,
-            "logo_path": logo_data,
-            "important_info": important_info,
-            "summary": summary,
-            "deposits": deposits,
-            "withdrawals": withdrawals,
-            "daily_balances": daily_balances,
-            "show_fee_waiver": service_fee == 0,
-            "account_type": "Total Checking" if account_type == "personal" else "Business Complete Checking",
-            "statement_start": statement_start,
-            "statement_end": statement_end,
-            "day_delta": day_delta,
-            "balance_map": balance_map
-        }
     
-    template = env.get_template(template_name)
-    template_name_base = os.path.splitext(template_name)[0]
-    html_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{bank}_{template_name_base}.html")
-    pdf_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{bank}_{template_name_base}.pdf")
+    # Prepare summary
+    summary = {
+        "beginning_balance": f"${initial_balance:,.2f}",
+        "deposits_total": f"${deposits_total:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{deposits_total:,.2f}",
+        "withdrawals_total": f"${withdrawals_total + (service_fee if service_fee else 0):,.2f}" if component_map["bank_balance"] != "citibank" else f"£{withdrawals_total + (service_fee if service_fee else 0):,.2f}",
+        "ending_balance": f"${ending_balance:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{ending_balance:,.2f}",
+        "deposits_count": len(deposits),
+        "withdrawals_count": len(withdrawals),
+        "transactions_count": len(df) + (1 if service_fee else 0),
+        "average_balance": f"${round((initial_balance + ending_balance) / 2, 2):,.2f}" if component_map["bank_balance"] != "citibank" else f"£{round((initial_balance + ending_balance) / 2, 2):,.2f}",
+        "fees": f"${service_fee:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{service_fee:,.2f}",
+        "checks_written": sum(1 for w in withdrawals if w["type"] == "check"),
+        "pos_transactions": random.randint(0, 10),
+        "pos_pin_transactions": random.randint(0, 5),
+        "total_atm_transactions": random.randint(0, 8),
+        "pnc_atm_transactions": random.randint(0, 5) if component_map["bank_balance"] == "pnc" else 0,
+        "other_atm_transactions": random.randint(0, 3),
+        "apy_earned": f"{random.uniform(0.01, 0.5):.2f}%" if component_map["bank_balance"] in ["pnc", "wellsfargo"] else "0.00%",
+        "days_in_period": (max_date - min_date).days + 1,
+        "average_collected_balance": f"${round(random.uniform(initial_balance, ending_balance), 2):,.2f}" if component_map["bank_balance"] != "citibank" else f"£{round(random.uniform(initial_balance, ending_balance), 2):,.2f}",
+        "interest_paid_period": f"${random.uniform(0.1, 10):,.2f}" if component_map["bank_balance"] in ["pnc", "wellsfargo"] else "$0.00",
+        "interest_paid_ytd": f"${random.uniform(1, 50):,.2f}" if component_map["bank_balance"] in ["pnc", "wellsfargo"] else "$0.00",
+        "overdraft_protection1": f"{component_map['account_summary'].capitalize()} Savings Account XXXX1234" if random.choice([True, False]) else "",
+        "overdraft_protection2": f"{component_map['account_summary'].capitalize()} Credit Line XXXX5678" if random.choice([True, False]) else "",
+        "overdraft_status": "Opted-In" if random.choice([True, False]) else "Opted-Out"
+    }
+    
+    # Prepare template data
+    template_data = {
+        "account_holder": account_holder,
+        "account_holder_address": address,
+        "account_number": account_number,
+        "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}",
+        "statement_date": statement_date,
+        "logo_path": os.path.join(SAMPLE_LOGOS_DIR, BANK_CONFIG[component_map["bank_front_page"]]["logo"]) if os.path.exists(os.path.join(SAMPLE_LOGOS_DIR, BANK_CONFIG[component_map["bank_front_page"]]["logo"])) else "",
+        "important_info": important_info,
+        "summary": summary,
+        "deposits": deposits,
+        "withdrawals": withdrawals,
+        "daily_balances": daily_balances,
+        "transactions": transactions,
+        "opening_balance": f"${initial_balance:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{initial_balance:,.2f}",
+        "total_debit": f"£{total_debit:,.2f}" if component_map["bank_balance"] == "citibank" else "",
+        "total_credit": f"£{total_credit:,.2f}" if component_map["bank_balance"] == "citibank" else "",
+        "total": f"£{ending_balance:,.2f}" if component_map["bank_balance"] == "citibank" else "",
+        "account_type": "Total Checking" if account_type == "personal" and component_map["bank_front_page"] == "chase" else
+                        "Business Complete Checking" if account_type == "business" and component_map["bank_front_page"] == "chase" else
+                        "Access Checking" if account_type == "personal" and component_map["bank_front_page"] == "citibank" else
+                        "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "citibank" else
+                        "Standard Checking" if account_type == "personal" and component_map["bank_front_page"] == "pnc" else
+                        "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "pnc" else
+                        "Everyday Checking" if account_type == "personal" and component_map["bank_front_page"] == "wellsfargo" else
+                        "Business Checking",
+        "show_fee_waiver": service_fee == 0,
+        "statement_start": statement_start,
+        "statement_end": statement_end,
+        "day_delta": day_delta,
+        "balance_map": balance_map,
+        "client_number": fake.uuid4()[:8] if component_map["bank_front_page"] == "citibank" else "",
+        "date_of_birth": fake.date_of_birth(minimum_age=18, maximum_age=80).strftime("%m/%d/%Y") if component_map["bank_front_page"] == "citibank" else "",
+        "customer_account_number": account_number if component_map["bank_front_page"] == "citibank" else "",
+        "customer_iban": f"GB{fake.random_number(digits=2)}CITI{fake.random_number(digits=14)}" if component_map["bank_front_page"] == "citibank" else "",
+        "customer_bank_name": "Citibank" if component_map["bank_front_page"] == "citibank" else ""
+    }
+    
+    # Set template paths
+    template_data.update({
+        "bank_front_page_template": os.path.join(template_dir, BANK_CONFIG[component_map["bank_front_page"]]["components"]["bank_front_page"]),
+        "account_summary_template": os.path.join(template_dir, BANK_CONFIG[component_map["account_summary"]]["components"]["account_summary"]),
+        "bank_balance_template": os.path.join(template_dir, BANK_CONFIG[component_map["bank_balance"]]["components"]["bank_balance"]),
+        "disclosures_template": os.path.join(template_dir, BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"]),
+        "component_map": component_map
+    })
+    
+    template_name_base = "_".join([f"{k}_{v}" for k, v in component_map.items()])
+    html_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{template_name_base}.html")
+    pdf_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{template_name_base}.pdf")
     
     rendered_html = template.render(**template_data)
     
@@ -561,4 +461,73 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, bank:
         pdfkit.from_string(rendered_html, pdf_filename, configuration=config, options=options)
         return [(html_filename, pdf_filename)]
     except OSError as e:
-        raise Exception(f"PDF generation failed for {bank} template {template_name}: {e}")
+        raise Exception(f"PDF generation failed for {component_map} template: {e}")
+
+# Helper function to generate important info
+def generate_important_info(bank: str, account_type: str) -> str:
+    if account_type == "business":
+        if bank == "chase":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Chase Complete Checking accounts will increase to $20 unless you maintain a minimum daily balance of $2,000, have $2,000 in net purchases on a Chase Business Debit Card, or maintain linked Chase business accounts with a combined balance of $10,000.</p>
+            <p>Starting June 30, 2025, Chase will offer enhanced cash flow tools for {account_type.capitalize()} Complete Checking accounts via Chase Online, including automated invoice tracking and payment scheduling.</p>
+            <p>Effective July 15, 2025, Chase will reduce wire transfer fees to $25 for domestic transfers for {account_type.capitalize()} Complete Checking accounts, down from $30.</p>
+            <p>For questions, visit chase.com or call <b>1-800-242-7338</b>, available 24/7.</p>
+            """
+        elif bank == "pnc":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $15 unless you maintain a minimum daily balance of $5,000, have $2,000 in net purchases on a PNC Business Debit Card, or maintain linked PNC business accounts with a combined balance of $10,000.</p>
+            <p>Starting June 30, 2025, PNC will offer enhanced cash flow tools for {account_type.capitalize()} Checking accounts via PNC Online Banking, including automated invoice tracking and payment scheduling.</p>
+            <p>Effective July 15, 2025, PNC will reduce domestic wire transfer fees to $25 for {account_type.capitalize()} Checking accounts, down from $30.</p>
+            <p>For questions, visit pnc.com or call <b>1-888-762-2265</b>, available 24/7.</p>
+            """
+        elif bank == "citibank":
+            return f"""
+            <p>Effective July 1, 2025, the monthly account fee for CitiBusiness Checking accounts will increase to £15 unless you maintain a minimum daily balance of £5,000 or have £2,000 in net purchases on a Citi Business Debit Card per month.</p>
+            <p>Starting June 30, 2025, Citibank will offer enhanced cash flow tools for CitiBusiness Checking accounts via Citi Online Banking, including automated invoice tracking and payment scheduling.</p>
+            <p>Effective July 15, 2025, Citibank will reduce domestic BACS transfer fees to £20 for CitiBusiness Checking accounts, down from £25.</p>
+            <p>For questions, visit citibank.co.uk or call <b>0800 005 555</b>, available 24/7.</p>
+            """
+        elif bank == "wellsfargo":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for Business Checking accounts will increase to $20 unless you maintain a minimum daily balance of $5,000, have $2,000 in net purchases on a Wells Fargo Business Debit Card, or maintain linked Wells Fargo business accounts with a combined balance of $10,000.</p>
+            <p>Starting June 30, 2025, Wells Fargo will offer enhanced cash flow tools for Business Checking accounts via Wells Fargo Online, including automated invoice tracking and payment scheduling.</p>
+            <p>Effective July 15, 2025, Wells Fargo will reduce wire transfer fees to $25 for domestic transfers for Business Checking accounts, down from $30.</p>
+            <p>For questions, visit wellsfargo.com or call <b>1-800-869-3557</b>, available 24/7.</p>
+            """
+    else:  # Personal
+        if bank == "chase":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Chase Total Checking accounts will increase to $15 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked Chase savings account with a balance of $5,000 or more.</p>
+            <p>Starting June 30, 2025, Chase will introduce real-time transaction alerts for {account_type.capitalize()} Total Checking accounts via the Chase Mobile app to enhance account monitoring. Enable alerts at chase.com/alerts.</p>
+            <p>Effective July 15, 2025, Chase will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Total Checking accounts.</p>
+            <p>For questions, visit chase.com or call <b>1-800-242-7338</b>, available 24/7.</p>
+            """
+        elif bank == "pnc":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $10 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked PNC savings account with a balance of $2,500 or more.</p>
+            <p>Starting June 30, 2025, PNC will introduce real-time transaction alerts for {account_type.capitalize()} Checking accounts via the PNC Mobile app to enhance account monitoring. Enable alerts at pnc.com/alerts.</p>
+            <p>Effective July 15, 2025, PNC will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Checking accounts.</p>
+            <p>For questions, visit pnc.com or call <b>1-888-762-2265</b>, available 24/7.</p>
+            """
+        elif bank == "citibank":
+            return f"""
+            <p>Effective July 1, 2025, the monthly account fee for Citi Access Checking accounts will increase to £10 unless you maintain a minimum daily balance of £1,500 or have qualifying direct deposits of £500 or more per month.</p>
+            <p>Starting June 30, 2025, Citibank will introduce real-time transaction alerts for Citi Access Checking accounts via the Citi Mobile UK app. Enable alerts at citibank.co.uk/alerts.</p>
+            <p>Effective July 15, 2025, Citibank will waive overdraft fees for transactions of £5 or less and cap daily overdraft fees at two per day for Citi Access Checking accounts.</p>
+            <p>For questions, visit citibank.co.uk or call <b>0800 005 555</b>, available 24/7.</p>
+            """
+        elif bank == "wellsfargo":
+            return f"""
+            <p>Effective July 1, 2025, the monthly service fee for {account_type.capitalize()} Checking accounts will increase to $10 unless you maintain a minimum daily balance of $1,500, have $500 in qualifying direct deposits, or maintain a linked Wells Fargo savings account with a balance of $2,500 or more.</p>
+            <p>Starting June 30, 2025, Wells Fargo will introduce real-time transaction alerts for {account_type.capitalize()} Checking accounts via the Wells Fargo Mobile app to enhance account monitoring. Enable alerts at wellsfargo.com/alerts.</p>
+            <p>Effective July 15, 2025, Wells Fargo will waive overdraft fees for transactions of $5 or less and cap daily overdraft fees at two per day for {account_type.capitalize()} Checking accounts.</p>
+            <p>For questions, visit wellsfargo.com or call <b>1-800-869-3557</b>, available 24/7.</p>
+            """
+    return "<p>No specific important information available.</p>"
+
+if __name__ == "__main__":
+    # Example usage (for testing)
+    df = generate_bank_statement(10, "John Doe", "personal")
+    component_map = {"bank_front_page": "chase", "account_summary": "pnc", "bank_balance": "wellsfargo", "disclosures": "citibank"}
+    output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, TEMPLATES_DIR, SYNTHETIC_STAT_DIR, "personal")
+    print(f"Generated files: {output_files}")
