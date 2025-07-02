@@ -2,8 +2,9 @@ import streamlit as st
 import os
 import pandas as pd
 from datetime import datetime, timedelta
+import random  # Added to fix the undefined error
 
-# Import your existing functions (adjust paths as needed)
+# Import from frankengen
 from frankengen import generate_bank_statement, identify_template_fields, generate_populated_html_and_pdf, BANK_CONFIG
 
 # Set page configuration
@@ -35,8 +36,8 @@ if st.sidebar.button("Generate Statement"):
         # Generate synthetic data
         df = generate_bank_statement(num_transactions, account_holder, account_type)
 
-        # Prepare template data
-        initial_balance = round(random.uniform(1000, 20000), 2)
+        # Prepare template data with number generation
+        initial_balance = round(random.uniform(1000, 20000), 2)  # Random initial balance
         deposits_total = sum(x for x in df['Amount'] if x > 0)
         withdrawals_total = abs(sum(x for x in df['Amount'] if x < 0))
         ending_balance = initial_balance + deposits_total - withdrawals_total
@@ -47,7 +48,7 @@ if st.sidebar.button("Generate Statement"):
 
         min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
         max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-        statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")
+        statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 02:04 PM CDT"
         address = fake.address().replace('\n', '<br>')[:100]
         account_holder = account_holder[:50]
         account_number = fake.bban()[:15]
@@ -138,7 +139,7 @@ if st.sidebar.button("Generate Statement"):
                 balance_map[iso_date] = f"${running_balance:,.2f}"
                 current_date += day_delta
 
-        # Prepare summary
+        # Prepare summary with random number generation
         summary = {
             "beginning_balance": f"${initial_balance:,.2f}",
             "deposits_total": f"${deposits_total:,.2f}" if component_map["bank_balance"] != "citibank" else f"£{deposits_total:,.2f}",
@@ -183,14 +184,18 @@ if st.sidebar.button("Generate Statement"):
             "total_debit": f"£{abs(sum(x for x in df['Amount'] if x < 0)):.2f}" if component_map["bank_balance"] == "citibank" else "",
             "total_credit": f"£{sum(x for x in df['Amount'] if x > 0):,.2f}" if component_map["bank_balance"] == "citibank" else "",
             "total": f"£{ending_balance:,.2f}" if component_map["bank_balance"] == "citibank" else "",
-            "account_type": "Total Checking" if account_type == "personal" else "Business Complete Checking" if component_map["bank_front_page"] == "chase" else
-                         "Access Checking" if account_type == "personal" else "Business Checking" if component_map["bank_front_page"] == "citibank" else
-                         "Standard Checking" if account_type == "personal" else "Business Checking" if component_map["bank_front_page"] == "pnc" else
-                         "Everyday Checking" if account_type == "personal" else "Business Checking",
+            "account_type": "Total Checking" if account_type == "personal" and component_map["bank_front_page"] == "chase" else
+                           "Business Complete Checking" if account_type == "business" and component_map["bank_front_page"] == "chase" else
+                           "Access Checking" if account_type == "personal" and component_map["bank_front_page"] == "citibank" else
+                           "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "citibank" else
+                           "Standard Checking" if account_type == "personal" and component_map["bank_front_page"] == "pnc" else
+                           "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "pnc" else
+                           "Everyday Checking" if account_type == "personal" and component_map["bank_front_page"] == "wellsfargo" else
+                           "Business Checking",
             "show_fee_waiver": service_fee == 0,
             "statement_start": statement_start,
             "statement_end": statement_end,
-            "day_delta": timedelta(days=1),
+            "day_delta": day_delta,
             "balance_map": balance_map,
             "client_number": fake.uuid4()[:8] if component_map["bank_front_page"] == "citibank" else "",
             "date_of_birth": fake.date_of_birth(minimum_age=18, maximum_age=80).strftime("%m/%d/%Y") if component_map["bank_front_page"] == "citibank" else "",
@@ -235,4 +240,4 @@ if st.sidebar.button("Generate Statement"):
         st.error(f"Error generating statement: {str(e)}")
 
 # Add a footer with current date and time
-st.sidebar.text(f"Generated on: {datetime.now().strftime('%I:%M %p CDT, %B %d, %Y')}")
+st.sidebar.text(f"Generated on: {datetime.now().strftime('%I:%M %p CDT, %B %d, %Y')}")  # e.g., "02:04 PM CDT, July 02, 2025"

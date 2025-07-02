@@ -15,9 +15,8 @@ import pdfkit
 fake = Faker()
 
 # Directory setup
-SAMPLE_LOGOS_DIR = "sample_logos"
-SYNTHETIC_STAT_DIR = "synthetic_statements"
-TEMPLATES_DIR = "templates"
+SAMPLE_LOGOS_DIR = "franken_logos"
+TEMPLATES_DIR = "frankenstein"
 
 # Create directories if they don’t exist
 for directory in [SAMPLE_LOGOS_DIR, SYNTHETIC_STAT_DIR, TEMPLATES_DIR]:
