@@ -37,10 +37,10 @@ BANK_CONFIG = {
     "wellsfargo": {
         "logo": "wellsfargo_logo.png",
         "components": {
-            "bank_front_page": "wellsfargo_front_page.html",
-            "account_summary": "wellsfargo_summary.html",
-            "bank_balance": "wellsfargo_balance.html",
-            "disclosures": "wellsfargo_disclosures.html"
+            "bank_front_page": "wells_front_page.html",
+            "account_summary": "wells_summary.html",
+            "bank_balance": "wells_balance.html",
+            "disclosures": "wells_disclosures.html"
         }
     },
     "pnc": {
