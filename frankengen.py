@@ -14,45 +14,66 @@ import pdfkit
 # Initialize Faker
 fake = Faker()
 
-# Bank configuration updated for bank-specific subfolders
+# Bank configuration
+# Update BANK_CONFIG to use flat filenames
 BANK_CONFIG = {
     "chase": {
         "logo": "chase_bank_logo.png",
         "components": {
-            "bank_front_page": os.path.join("chase", "chase_front_page.html"),
-            "account_summary": os.path.join("chase", "chase_summary.html"),
-            "bank_balance": os.path.join("chase", "chase_balance.html"),
-            "disclosures": os.path.join("chase", "chase_disclosures.html")
+            "bank_front_page": "chase_front_page.html",
+            "account_summary": "chase_summary.html",
+            "bank_balance": "chase_balance.html",
+            "disclosures": "chase_disclosures.html"
         }
     },
     "citibank": {
         "logo": "citibank_logo.png",
         "components": {
-            "bank_front_page": os.path.join("citibank", "citibank_front_page.html"),
-            "account_summary": os.path.join("citibank", "citibank_summary.html"),
-            "bank_balance": os.path.join("citibank", "citibank_balance.html"),
-            "disclosures": os.path.join("citibank", "citibank_disclosures.html")
+            "bank_front_page": "citibank_front_page.html",
+            "account_summary": "citibank_summary.html",
+            "bank_balance": "citibank_balance.html",
+            "disclosures": "citibank_disclosures.html"
         }
     },
     "wellsfargo": {
         "logo": "wellsfargo_logo.png",
         "components": {
-            "bank_front_page": os.path.join("wellsfargo", "wells_front_page.html"),
-            "account_summary": os.path.join("wellsfargo", "wells_summary.html"),
-            "bank_balance": os.path.join("wellsfargo", "wells_balance.html"),
-            "disclosures": os.path.join("wellsfargo", "wells_disclosures.html")
+            "bank_front_page": "wells_front_page.html",
+            "account_summary": "wells_summary.html",
+            "bank_balance": "wells_balance.html",
+            "disclosures": "wells_disclosures.html"
         }
     },
     "pnc": {
         "logo": "pnc_logo.png",
         "components": {
-            "bank_front_page": os.path.join("pnc", "pnc_front_page.html"),
-            "account_summary": os.path.join("pnc", "pnc_summary.html"),
-            "bank_balance": os.path.join("pnc", "pnc_balance.html"),
-            "disclosures": os.path.join("pnc", "pnc_disclosures.html")
+            "bank_front_page": "pnc_front_page.html",
+            "account_summary": "pnc_summary.html",
+            "bank_balance": "pnc_balance.html",
+            "disclosures": "pnc_disclosures.html"
         }
     }
 }
+
+# Update environment initialization in identify_template_fields
+env = Environment(loader=FileSystemLoader(templates_dir))
+
+# Update environment initialization in generate_populated_html_and_pdf
+env = Environment(loader=FileSystemLoader(template_dir))
+try:
+    template = env.get_template("base_template.html")  # Load base template from root
+except TemplateNotFound:
+    raise FileNotFoundError(f"Base template 'base_template.html' not found in {template_dir}")
+
+# Update template_data in generate_populated_html_and_pdf
+template_data.update({
+    "bank_front_page_template": BANK_CONFIG[component_map["bank_front_page"]]["components"]["bank_front_page"],
+    "account_summary_template": BANK_CONFIG[component_map["account_summary"]]["components"]["account_summary"],
+    "bank_balance_template": BANK_CONFIG[component_map["bank_balance"]]["components"]["bank_balance"],
+    "disclosures_template": BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"],
+    "component_map": component_map
+})
+
 
 # Pydantic models
 class FieldDefinition(BaseModel):
