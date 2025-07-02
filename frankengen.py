@@ -337,8 +337,8 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "overdraft_protection2": f"{component_map['account_summary'].capitalize()} Credit Line XXXX5678" if random.choice([True, False]) else "",
         "overdraft_status": "Opted-In" if random.choice([True, False]) else "Opted-Out"
     }
-    
-    # In generate_populated_html_and_pdf, update the template_data section
+        
+
     template_data = {
         "account_holder": account_holder, "account_holder_address": address, "account_number": account_number,
         "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}", "statement_date": statement_date,
@@ -350,13 +350,13 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "total_credit": f"£{total_credit:,.2f}" if component_map["bank_balance"] == "citibank" else "",
         "total": f"£{ending_balance:,.2f}" if component_map["bank_balance"] == "citibank" else "",
         "account_type": "Total Checking" if account_type == "personal" and component_map["bank_front_page"] == "chase" else
-                    "Business Complete Checking" if account_type == "business" and component_map["bank_front_page"] == "chase" else
-                    "Access Checking" if account_type == "personal" and component_map["bank_front_page"] == "citibank" else
-                    "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "citibank" else
-                    "Standard Checking" if account_type == "personal" and component_map["bank_front_page"] == "pnc" else
-                    "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "pnc" else
-                    "Everyday Checking" if account_type == "personal" and component_map["bank_front_page"] == "wellsfargo" else
-                    "Business Checking",
+                       "Business Complete Checking" if account_type == "business" and component_map["bank_front_page"] == "chase" else
+                       "Access Checking" if account_type == "personal" and component_map["bank_front_page"] == "citibank" else
+                       "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "citibank" else
+                       "Standard Checking" if account_type == "personal" and component_map["bank_front_page"] == "pnc" else
+                       "Business Checking" if account_type == "business" and component_map["bank_front_page"] == "pnc" else
+                       "Everyday Checking" if account_type == "personal" and component_map["bank_front_page"] == "wellsfargo" else
+                       "Business Checking",
         "show_fee_waiver": service_fee == 0, "statement_start": statement_start, "statement_end": statement_end,
         "day_delta": day_delta, "balance_map": balance_map,
         "client_number": fake.uuid4()[:8] if component_map["bank_front_page"] == "citibank" else "",
@@ -370,6 +370,8 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "disclosures_template": BANK_CONFIG[component_map["disclosures"]]["components"]["disclosures"],
         "component_map": component_map
     }
+
+
     
     template_name_base = "_".join([f"{k}_{v}" for k, v in component_map.items()])
     html_filename = os.path.join(output_dir, f"bank_statement_{account_type.upper()}_{account_holder.replace(' ', '_')}_{template_name_base}.html")
