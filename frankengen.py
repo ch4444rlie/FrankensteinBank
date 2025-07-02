@@ -202,6 +202,7 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
 
 # Identify mutable and immutable fields (updated for modular sections)
 def identify_template_fields(component_map: Dict[str, str], templates_dir: str = "f_templates") -> StatementFields:
+    env = Environment(loader=FileSystemLoader(templates_dir))
     supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
     for component in component_map.keys():
         if component not in supported_components:
