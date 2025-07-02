@@ -8,7 +8,7 @@ import random
 import pandas as pd
 from pydantic import BaseModel, Field
 from typing import List, Dict
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 import pdfkit
 
 # Initialize Faker
@@ -180,7 +180,7 @@ def generate_bank_statement(num_transactions: int, account_holder: str, account_
     return df
 
 # Identify mutable and immutable fields (updated for modular sections)
-def identify_template_fields(component: str, templates_dir: str = "templates") -> StatementFields:
+def identify_template_fields(component: str, templates_dir: str = "f_templates") -> StatementFields:
     supported_components = ["bank_front_page", "account_summary", "bank_balance", "disclosures"]
     if component not in supported_components:
         raise ValueError(f"Unsupported component: {component}. Supported components: {supported_components}")
@@ -232,7 +232,7 @@ def identify_template_fields(component: str, templates_dir: str = "templates") -
     ]
     statement_fields = StatementFields(fields=[f for f in default_fields if f.name in placeholders or f.name in ["bank_name", "bank_address", "customer_service", "footnotes"]])
     
-    log_path = os.path.join("synthetic_statements", f"template_fields_{component}.json")
+    log_path = os.path.join("output_statements", f"template_fields_{component}.json")
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(statement_fields.model_dump(), f, indent=2)
@@ -240,13 +240,19 @@ def identify_template_fields(component: str, templates_dir: str = "templates") -
     return statement_fields
 
 # Generate populated HTML and PDF (updated for modular sections)
-def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str, output_dir: str, account_type: str) -> list:
+def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, component_map: Dict[str, str], template_dir: str = "f_templates", output_dir: str = "output_statements", account_type: str) -> list:
     for bank in component_map.values():
         if bank not in BANK_CONFIG:
             raise ValueError(f"Unsupported bank: {bank}. Supported banks: {list(BANK_CONFIG.keys())}")
     
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
     env = Environment(loader=FileSystemLoader(template_dir))
-    template = env.get_template("base_template.html")
+    try:
+        template = env.get_template("base_template.html")
+    except TemplateNotFound:
+        raise FileNotFoundError(f"Base template 'base_template.html' not found in {template_dir}")
     
     initial_balance = round(random.uniform(1000, 20000), 2)
     deposits_total = sum(x for x in df['Amount'] if x > 0)
@@ -259,7 +265,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
     
     min_date = datetime.strptime(min(df['Date']), "%m/%d").replace(year=2025)
     max_date = datetime.strptime(max(df['Date']), "%m/%d").replace(year=2025)
-    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 02:34 PM CDT"
+    statement_date = datetime.now().strftime("%B %d, %Y at %I:%M %p %Z")  # e.g., "July 02, 2025 at 03:31 PM CDT"
     
     address = fake.address().replace('\n', '<br>')[:100]
     account_holder = account_holder[:50]
@@ -383,7 +389,7 @@ def generate_populated_html_and_pdf(df: pd.DataFrame, account_holder: str, compo
         "account_number": account_number,
         "statement_period": f"{min_date.strftime('%B %d')} through {max_date.strftime('%B %d')}",
         "statement_date": statement_date,
-        "logo_path": os.path.join("sample_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"]) if os.path.exists(os.path.join("sample_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"])) else "",
+        "logo_path": os.path.join("franken_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"]) if os.path.exists(os.path.join("franken_logos", BANK_CONFIG[component_map["bank_front_page"]]["logo"])) else "",
         "important_info": important_info,
         "summary": summary,
         "deposits": deposits,
@@ -521,5 +527,5 @@ if __name__ == "__main__":
     # Example usage (for testing)
     df = generate_bank_statement(10, "John Doe", "personal")
     component_map = {"bank_front_page": "chase", "account_summary": "pnc", "bank_balance": "wellsfargo", "disclosures": "citibank"}
-    output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, "templates", "synthetic_statements", "personal")
+    output_files = generate_populated_html_and_pdf(df, "John Doe", component_map, "f_templates", "output_statements", "personal")
     print(f"Generated files: {output_files}")
